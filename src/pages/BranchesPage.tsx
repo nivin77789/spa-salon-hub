@@ -119,33 +119,27 @@ const BranchesPage = () => {
   return (
     <div className="min-h-screen gradient-hero p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
+        {/* Header and Add Branch Button */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
         >
-          <h1 className="text-4xl md:text-5xl font-bold mb-2 capitalize">
-            {type} Branches
-          </h1>
-          <p className="text-muted-foreground">
-            Select a branch to manage or add a new one
-          </p>
-        </motion.div>
+          <div>
+            <h1 className="text-4xl md:text-5xl font-bold mb-2 capitalize">
+              {type} Branches
+            </h1>
+            <p className="text-muted-foreground">
+              Select a branch to manage or add a new one
+            </p>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Small Add Branch Button on the Top Right */}
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.1 }}
-                className="cursor-pointer"
-              >
-                <div className="h-48 rounded-xl border-2 border-dashed border-primary/50 hover:border-primary bg-card card-hover flex flex-col items-center justify-center gap-4">
-                  <FaPlus className="w-8 h-8 text-primary" />
-                  <p className="text-sm font-semibold text-primary">Add Branch</p>
-                </div>
-              </motion.div>
+              <Button className="gradient-primary flex items-center gap-2 px-4 py-2 text-sm">
+                <FaPlus className="w-4 h-4" /> Add Branch
+              </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
@@ -171,7 +165,10 @@ const BranchesPage = () => {
               </div>
             </DialogContent>
           </Dialog>
+        </motion.div>
 
+        {/* Branch Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {branches.map((branch, index) => (
             <motion.div
               key={branch.id}
@@ -192,7 +189,7 @@ const BranchesPage = () => {
                       <DropdownMenuItem onClick={(e) => handleEditBranch(branch, e)}>
                         <FaEdit className="mr-2" /> Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={(e) => handleDeleteBranch(branch.id, e)}
                         className="text-destructive"
                       >
@@ -208,8 +205,8 @@ const BranchesPage = () => {
                     {branch.type} Branch
                   </p>
                 </div>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="w-full"
                   onClick={() => handleBranchClick(branch.id)}
                 >
@@ -220,6 +217,7 @@ const BranchesPage = () => {
           ))}
         </div>
 
+        {/* Edit Branch Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
