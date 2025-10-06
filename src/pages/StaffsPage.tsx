@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, getDocs, deleteDoc, doc, query, where } from "firebase/firestore";
+import { collection, addDoc, getDocs, deleteDoc, doc, query, where, updateDoc } from "firebase/firestore";
 import { Staff } from "@/types";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -19,6 +19,8 @@ const StaffsPage = () => {
   const [filteredStaffs, setFilteredStaffs] = useState<Staff[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
@@ -106,6 +108,55 @@ const StaffsPage = () => {
     } catch (error) {
       console.error("Error deleting staff:", error);
       toast.error("Failed to delete staff");
+    }
+  };
+
+  const handleEditStaff = (staff: Staff) => {
+    setEditingStaff(staff);
+    setFormData({
+      firstName: staff.firstName,
+      lastName: staff.lastName,
+      nickname: staff.nickname,
+      age: staff.age.toString(),
+      address: staff.address,
+      contact: staff.contact,
+      aadharNumber: staff.aadharNumber,
+      role: staff.role
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateStaff = async () => {
+    if (!formData.firstName || !formData.lastName || !formData.nickname || !editingStaff) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await updateDoc(doc(db, "staffs", editingStaff.id), {
+        ...formData,
+        age: parseInt(formData.age)
+      });
+      toast.success("Staff updated successfully");
+      setFormData({
+        firstName: "",
+        lastName: "",
+        nickname: "",
+        age: "",
+        address: "",
+        contact: "",
+        aadharNumber: "",
+        role: "therapist"
+      });
+      setEditingStaff(null);
+      setIsEditDialogOpen(false);
+      loadStaffs();
+    } catch (error) {
+      console.error("Error updating staff:", error);
+      toast.error("Failed to update staff");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -237,14 +288,24 @@ const StaffsPage = () => {
                   <div className="w-12 h-12 rounded-full gradient-primary flex items-center justify-center text-white font-bold text-lg">
                     {staff.firstName[0]}{staff.lastName[0]}
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDeleteStaff(staff.id)}
-                    className="text-destructive hover:bg-destructive/10"
-                  >
-                    <FaTrash />
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleEditStaff(staff)}
+                      className="text-primary hover:bg-primary/10"
+                    >
+                      <FaEdit />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDeleteStaff(staff.id)}
+                      className="text-destructive hover:bg-destructive/10"
+                    >
+                      <FaTrash />
+                    </Button>
+                  </div>
                 </div>
                 <h3 className="text-xl font-bold mb-1">
                   {staff.firstName} {staff.lastName}
@@ -278,6 +339,97 @@ const StaffsPage = () => {
             <p className="text-muted-foreground text-lg">No staff members found</p>
           </div>
         )}
+
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Staff Member</DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+              <div className="space-y-2">
+                <Label htmlFor="editFirstName">First Name *</Label>
+                <Input
+                  id="editFirstName"
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editLastName">Last Name *</Label>
+                <Input
+                  id="editLastName"
+                  value={formData.lastName}
+                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editNickname">Spa Nickname *</Label>
+                <Input
+                  id="editNickname"
+                  value={formData.nickname}
+                  onChange={(e) => setFormData({ ...formData, nickname: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editAge">Age</Label>
+                <Input
+                  id="editAge"
+                  type="number"
+                  value={formData.age}
+                  onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="editAddress">Address</Label>
+                <Input
+                  id="editAddress"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editContact">Contact</Label>
+                <Input
+                  id="editContact"
+                  value={formData.contact}
+                  onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editAadhar">Aadhar Number</Label>
+                <Input
+                  id="editAadhar"
+                  value={formData.aadharNumber}
+                  onChange={(e) => setFormData({ ...formData, aadharNumber: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editRole">Role</Label>
+                <Select
+                  value={formData.role}
+                  onValueChange={(value: Staff['role']) => setFormData({ ...formData, role: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="therapist">Therapist</SelectItem>
+                    <SelectItem value="receptionist">Receptionist</SelectItem>
+                    <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <Button
+              onClick={handleUpdateStaff}
+              disabled={loading}
+              className="w-full gradient-primary mt-4"
+            >
+              {loading ? "Updating..." : "Update Staff Member"}
+            </Button>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );

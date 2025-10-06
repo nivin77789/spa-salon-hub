@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { FaUsers, FaTrophy, FaChartBar, FaCalendar } from "react-icons/fa";
+import { FaUsers, FaTrophy, FaChartBar, FaCalendar, FaMoneyBillWave } from "react-icons/fa";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { Staff, Customer } from "@/types";
@@ -19,7 +19,8 @@ const CustomersDashboard = () => {
     totalCustomers: 0,
     newCustomers: 0,
     regularCustomers: 0,
-    topTherapist: { name: "", count: 0 }
+    topTherapist: { name: "", count: 0 },
+    totalRevenue: 0
   });
 
   useEffect(() => {
@@ -57,6 +58,7 @@ const CustomersDashboard = () => {
       // Calculate stats
       const newCustomers = filteredCustomers.filter(c => c.type === 'new').length;
       const regularCustomers = filteredCustomers.filter(c => c.type === 'regular').length;
+      const totalRevenue = filteredCustomers.reduce((sum, customer) => sum + (customer.amount || 0), 0);
 
       // Find top therapist
       const therapistCount = new Map<string, number>();
@@ -79,7 +81,8 @@ const CustomersDashboard = () => {
         totalCustomers: filteredCustomers.length,
         newCustomers,
         regularCustomers,
-        topTherapist
+        topTherapist,
+        totalRevenue
       });
     } catch (error) {
       console.error("Error loading data:", error);
@@ -117,7 +120,7 @@ const CustomersDashboard = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -131,6 +134,24 @@ const CustomersDashboard = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Total Customers</p>
                   <p className="text-2xl font-bold">{stats.totalCustomers}</p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+          >
+            <div className="bg-card rounded-xl p-6 shadow-lg">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg bg-emerald-100 flex items-center justify-center">
+                  <FaMoneyBillWave className="w-6 h-6 text-emerald-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Revenue</p>
+                  <p className="text-2xl font-bold">₹{stats.totalRevenue}</p>
                 </div>
               </div>
             </div>

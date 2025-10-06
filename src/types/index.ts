@@ -41,4 +41,6 @@ export interface Customer {
   therapistName: string;
   date: string;
   branchId: string;
+  amount: number;
+  isActive: boolean;
 }
