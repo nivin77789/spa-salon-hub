@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { FaCheck, FaTimes, FaSearch, FaClock } from "react-icons/fa";
+import { FaCheck, FaTimes, FaEdit } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, getDocs, query, where } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, where, doc, updateDoc } from "firebase/firestore";
 import { Staff, Attendance } from "@/types";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -18,6 +19,13 @@ const AttendancePage = () => {
   const [attendances, setAttendances] = useState<Attendance[]>([]);
   const [filterPeriod, setFilterPeriod] = useState("daily");
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingAttendance, setEditingAttendance] = useState<Attendance | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    entryTime: "",
+    exitTime: "",
+    status: "" as 'present' | 'absent' | 'half-day'
+  });
 
   useEffect(() => {
     loadStaffs();
@@ -88,6 +96,35 @@ const AttendancePage = () => {
 
   const getAttendanceForStaff = (staffId: string) => {
     return attendances.find(a => a.staffId === staffId);
+  };
+
+  const handleEditAttendance = (attendance: Attendance) => {
+    setEditingAttendance(attendance);
+    setEditFormData({
+      entryTime: attendance.entryTime,
+      exitTime: attendance.exitTime || "",
+      status: attendance.status
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateAttendance = async () => {
+    if (!editingAttendance) return;
+
+    try {
+      await updateDoc(doc(db, "attendances", editingAttendance.id), {
+        entryTime: editFormData.entryTime,
+        exitTime: editFormData.exitTime,
+        status: editFormData.status
+      });
+      toast.success("Attendance updated successfully");
+      setIsEditDialogOpen(false);
+      setEditingAttendance(null);
+      loadAttendances();
+    } catch (error) {
+      console.error("Error updating attendance:", error);
+      toast.error("Failed to update attendance");
+    }
   };
 
   return (
@@ -174,7 +211,16 @@ const AttendancePage = () => {
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        {!attendance && (
+                        {attendance ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditAttendance(attendance)}
+                            className="gap-2"
+                          >
+                            <FaEdit /> Edit
+                          </Button>
+                        ) : (
                           <div className="flex gap-2">
                             <Button
                               size="sm"
@@ -213,6 +259,59 @@ const AttendancePage = () => {
             <p className="text-muted-foreground text-lg">No staff members found</p>
           </div>
         )}
+
+        {/* Edit Attendance Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Attendance</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-entry-time">Entry Time</Label>
+                <Input
+                  id="edit-entry-time"
+                  type="time"
+                  value={editFormData.entryTime}
+                  onChange={(e) => setEditFormData({ ...editFormData, entryTime: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-exit-time">Exit Time</Label>
+                <Input
+                  id="edit-exit-time"
+                  type="time"
+                  value={editFormData.exitTime}
+                  onChange={(e) => setEditFormData({ ...editFormData, exitTime: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-status">Status</Label>
+                <Select
+                  value={editFormData.status}
+                  onValueChange={(value: 'present' | 'absent' | 'half-day') => 
+                    setEditFormData({ ...editFormData, status: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="present">Present</SelectItem>
+                    <SelectItem value="absent">Absent</SelectItem>
+                    <SelectItem value="half-day">Half Day</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <Button
+              onClick={handleUpdateAttendance}
+              className="w-full gradient-primary mt-4"
+            >
+              Update Attendance
+            </Button>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
